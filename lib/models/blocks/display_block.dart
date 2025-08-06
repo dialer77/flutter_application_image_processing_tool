@@ -6,6 +6,7 @@ class DisplayBlock extends ProcessingBlock {
   DisplayBlock({
     required super.id,
     Map<String, dynamic>? parameters,
+    super.result,
   }) : super(
           type: BlockType.display,
           parameters: parameters ?? {},
@@ -21,10 +22,12 @@ class DisplayBlock extends ProcessingBlock {
   ProcessingBlock copyWith({
     String? id,
     Map<String, dynamic>? parameters,
+    ProcessingBlockResult? result,
   }) {
     return DisplayBlock(
       id: id ?? this.id,
       parameters: parameters ?? this.parameters,
+      result: result ?? this.result,
     );
   }
 }

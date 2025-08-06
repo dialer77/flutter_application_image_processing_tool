@@ -6,11 +6,13 @@ abstract class ProcessingBlock {
   final String id;
   final BlockType type;
   final Map<String, dynamic> parameters;
+  final ProcessingBlockResult? result; // 결과 데이터 추가
 
   ProcessingBlock({
     required this.id,
     required this.type,
     required this.parameters,
+    this.result, // 결과 데이터 추가
   });
 
   // 각 블록이 구현해야 하는 메서드
@@ -19,6 +21,7 @@ abstract class ProcessingBlock {
   ProcessingBlock copyWith({
     String? id,
     Map<String, dynamic>? parameters,
+    ProcessingBlockResult? result, // 결과 데이터 추가
   });
 }
 

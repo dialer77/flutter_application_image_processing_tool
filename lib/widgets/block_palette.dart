@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/block_type.dart';
+import '../utils/app_theme.dart';
 import 'block_template_widget.dart';
 
 class BlockPalette extends StatelessWidget {
@@ -9,14 +10,18 @@ class BlockPalette extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 250,
-      color: Colors.grey[100],
+      color: AppTheme.paletteBackground,
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
             child: const Text(
               '처리 블록',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryText,
+              ),
             ),
           ),
           Expanded(

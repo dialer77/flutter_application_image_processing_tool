@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import '../models/block_type.dart';
+import 'app_theme.dart';
 
 class BlockColors {
-  static const Map<BlockType, Color> colors = {
-    BlockType.loadImage: Colors.green,
-    BlockType.grayscale: Colors.blue,
-    BlockType.blur: Colors.orange,
-    BlockType.brightness: Colors.purple,
-    BlockType.display: Colors.red,
-  };
+  static Map<BlockType, Color> get colors => {
+        BlockType.loadImage: AppTheme.blockColors['loadImage']!,
+        BlockType.grayscale: AppTheme.blockColors['grayscale']!,
+        BlockType.blur: AppTheme.blockColors['blur']!,
+        BlockType.brightness: AppTheme.blockColors['brightness']!,
+        BlockType.display: AppTheme.blockColors['display']!,
+      };
 
   static Color getColor(BlockType type) {
     return colors[type] ?? Colors.grey;

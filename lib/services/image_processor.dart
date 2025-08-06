@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import '../models/processing_block.dart';
+import '../models/block_type.dart';
 
 class ImageProcessor {
   static Future<ProcessingResult> executeBlocks(List<ProcessingBlock> blocks) async {
@@ -12,8 +13,16 @@ class ImageProcessor {
 
     for (ProcessingBlock block in blocks) {
       final result = await block.executeBlock(currentImage, originalImage);
-      currentImage = result.currentImage;
-      originalImage = result.originalImage ?? originalImage;
+
+      // 이미지 로드 블록인 경우 원본 이미지 설정
+      if (block.type == BlockType.loadImage) {
+        // 기존 이미지가 없을 때만 새로 설정
+        originalImage ??= result.currentImage;
+        currentImage = result.currentImage;
+      } else {
+        currentImage = result.currentImage;
+        originalImage = result.originalImage ?? originalImage;
+      }
     }
 
     return ProcessingResult(originalImage, currentImage);

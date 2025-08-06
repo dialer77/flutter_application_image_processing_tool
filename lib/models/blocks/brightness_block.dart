@@ -7,6 +7,7 @@ class BrightnessBlock extends ProcessingBlock {
   BrightnessBlock({
     required super.id,
     Map<String, dynamic>? parameters,
+    super.result,
   }) : super(
           type: BlockType.brightness,
           parameters: parameters ?? {},
@@ -27,10 +28,12 @@ class BrightnessBlock extends ProcessingBlock {
   ProcessingBlock copyWith({
     String? id,
     Map<String, dynamic>? parameters,
+    ProcessingBlockResult? result,
   }) {
     return BrightnessBlock(
       id: id ?? this.id,
       parameters: parameters ?? this.parameters,
+      result: result ?? this.result,
     );
   }
 }

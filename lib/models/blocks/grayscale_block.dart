@@ -7,6 +7,7 @@ class GrayscaleBlock extends ProcessingBlock {
   GrayscaleBlock({
     required super.id,
     Map<String, dynamic>? parameters,
+    super.result,
   }) : super(
           type: BlockType.grayscale,
           parameters: parameters ?? {},
@@ -26,10 +27,12 @@ class GrayscaleBlock extends ProcessingBlock {
   ProcessingBlock copyWith({
     String? id,
     Map<String, dynamic>? parameters,
+    ProcessingBlockResult? result,
   }) {
     return GrayscaleBlock(
       id: id ?? this.id,
       parameters: parameters ?? this.parameters,
+      result: result ?? this.result,
     );
   }
 }

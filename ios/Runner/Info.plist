@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- 카메라 권한 -->
+	<key>NSCameraUsageDescription</key>
+	<string>이미지 처리를 위해 카메라에 접근합니다.</string>
+	<!-- 갤러리 권한 -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>이미지 처리를 위해 갤러리에 접근합니다.</string>
 </dict>
 </plist>

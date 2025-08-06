@@ -7,6 +7,7 @@ class BlurBlock extends ProcessingBlock {
   BlurBlock({
     required super.id,
     Map<String, dynamic>? parameters,
+    super.result,
   }) : super(
           type: BlockType.blur,
           parameters: parameters ?? {},
@@ -27,10 +28,12 @@ class BlurBlock extends ProcessingBlock {
   ProcessingBlock copyWith({
     String? id,
     Map<String, dynamic>? parameters,
+    ProcessingBlockResult? result,
   }) {
     return BlurBlock(
       id: id ?? this.id,
       parameters: parameters ?? this.parameters,
+      result: result ?? this.result,
     );
   }
 }

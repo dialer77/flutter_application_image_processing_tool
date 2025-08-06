@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:ui';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -11,27 +12,77 @@ class ImageAlgorithms {
     final canvas = Canvas(recorder);
     final paint = Paint();
 
-    // 간단한 그라데이션 이미지 생성
-    const rect = Rect.fromLTWH(0, 0, 200, 200);
+    // 더 큰 이미지 생성 (400x400)
+    const rect = Rect.fromLTWH(0, 0, 400, 400);
+
+    // 배경 그라데이션
     final gradient = ui.Gradient.linear(
       const Offset(0, 0),
-      const Offset(200, 200),
-      [Colors.red, Colors.blue],
+      const Offset(400, 400),
+      [Colors.blue.shade100, Colors.purple.shade100],
     );
 
     paint.shader = gradient;
     canvas.drawRect(rect, paint);
 
-    // 원 몇 개 추가
+    // 다양한 도형들 추가
     paint.shader = null;
-    paint.color = Colors.yellow;
-    canvas.drawCircle(const Offset(50, 50), 20, paint);
 
+    // 빨간 원
+    paint.color = Colors.red;
+    canvas.drawCircle(const Offset(100, 100), 40, paint);
+
+    // 초록 사각형
+    paint.color = Colors.green;
+    canvas.drawRect(const Rect.fromLTWH(250, 80, 80, 80), paint);
+
+    // 노란 삼각형 (다각형으로 그리기)
+    paint.color = Colors.yellow;
+    final path = Path();
+    path.moveTo(200, 300);
+    path.lineTo(150, 200);
+    path.lineTo(250, 200);
+    path.close();
+    canvas.drawPath(path, paint);
+
+    // 보라색 별 모양
     paint.color = Colors.purple;
-    canvas.drawCircle(const Offset(150, 150), 30, paint);
+    final starPath = Path();
+    const center = Offset(320, 320);
+    const radius = 30.0;
+    for (int i = 0; i < 10; i++) {
+      final angle = i * 0.2 * 3.14159;
+      final r = i % 2 == 0 ? radius : radius * 0.5;
+      final x = center.dx + r * math.cos(angle);
+      final y = center.dy + r * math.sin(angle);
+      if (i == 0) {
+        starPath.moveTo(x, y);
+      } else {
+        starPath.lineTo(x, y);
+      }
+    }
+    starPath.close();
+    canvas.drawPath(starPath, paint);
+
+    // 텍스트 추가
+    paint.color = Colors.black;
+    paint.style = PaintingStyle.fill;
+    final textPainter = TextPainter(
+      text: const TextSpan(
+        text: 'Sample',
+        style: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: Colors.black,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, const Offset(150, 50));
 
     final picture = recorder.endRecording();
-    return await picture.toImage(200, 200);
+    return await picture.toImage(400, 400);
   }
 
   static Future<ui.Image> applyGrayscale(ui.Image image) async {

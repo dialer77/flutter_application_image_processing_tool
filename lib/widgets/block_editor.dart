@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/processing_block.dart';
 import '../models/block_type.dart';
-import '../utils/parameter_utils.dart';
+import '../utils/app_theme.dart';
 import 'processing_block_widget.dart';
 
 class BlockEditor extends StatelessWidget {
@@ -10,6 +10,8 @@ class BlockEditor extends StatelessWidget {
   final Function(int, int) onBlockReordered;
   final Function(int) onBlockDeleted;
   final Function(int, String, dynamic) onParameterChanged;
+  final Function(int)? onBlockTap; // 블록 클릭 콜백 추가
+  final Function(int)? onLoadImage; // 이미지 로드 콜백 추가
   final VoidCallback onExecute;
   final VoidCallback onClear;
 
@@ -20,6 +22,8 @@ class BlockEditor extends StatelessWidget {
     required this.onBlockReordered,
     required this.onBlockDeleted,
     required this.onParameterChanged,
+    this.onBlockTap, // 블록 클릭 콜백 추가
+    this.onLoadImage, // 이미지 로드 콜백 추가
     required this.onExecute,
     required this.onClear,
   });
@@ -27,7 +31,7 @@ class BlockEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.grey[50],
+      color: AppTheme.editorBackground,
       child: Column(
         children: [
           // 헤더
@@ -38,19 +42,29 @@ class BlockEditor extends StatelessWidget {
               children: [
                 const Text(
                   '블록 편집기',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryText,
+                  ),
                 ),
                 Row(
                   children: [
                     ElevatedButton(
                       onPressed: onExecute,
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.successButtonColor,
+                        foregroundColor: Colors.white,
+                      ),
                       child: const Text('실행'),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: onClear,
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.dangerButtonColor,
+                        foregroundColor: Colors.white,
+                      ),
                       child: const Text('초기화'),
                     ),
                   ],
@@ -70,19 +84,19 @@ class BlockEditor extends StatelessWidget {
                   margin: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: candidateData.isNotEmpty ? Colors.blue : Colors.grey[300]!,
+                      color: candidateData.isNotEmpty ? AppTheme.activeBorderColor : AppTheme.borderColor,
                       width: 2,
                       style: BorderStyle.solid,
                     ),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: blocks.isEmpty
-                      ? Center(
+                      ? const Center(
                           child: Text(
                             '여기에 블록을 드래그하세요',
                             style: TextStyle(
                               fontSize: 16,
-                              color: Colors.grey[600],
+                              color: AppTheme.mutedText,
                             ),
                           ),
                         )
@@ -100,6 +114,8 @@ class BlockEditor extends StatelessWidget {
                               onParameterChanged: (key, value) {
                                 onParameterChanged(index, key, value);
                               },
+                              onBlockTap: onBlockTap != null ? () => onBlockTap!(index) : null, // 블록 클릭 이벤트 추가
+                              onLoadImage: onLoadImage != null ? () => onLoadImage!(index) : null, // 이미지 로드 이벤트 추가
                             );
                           }).toList(),
                         ),
