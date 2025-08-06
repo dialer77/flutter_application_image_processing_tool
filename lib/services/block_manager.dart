@@ -8,10 +8,10 @@ class BlockManager {
   List<ProcessingBlock> get blocks => List.unmodifiable(_blocks);
 
   void addBlock(BlockType type) {
-    final block = ProcessingBlock(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      type: type,
-      parameters: ParameterUtils.getDefaultParameters(type),
+    final block = createBlock(
+      type,
+      DateTime.now().millisecondsSinceEpoch.toString(),
+      ParameterUtils.getDefaultParameters(type),
     );
     _blocks.add(block);
   }
@@ -32,7 +32,10 @@ class BlockManager {
 
   void updateBlockParameter(int index, String key, dynamic value) {
     if (index >= 0 && index < _blocks.length) {
-      _blocks[index].parameters[key] = value;
+      final oldBlock = _blocks[index];
+      final newParameters = Map<String, dynamic>.from(oldBlock.parameters);
+      newParameters[key] = value;
+      _blocks[index] = oldBlock.copyWith(parameters: newParameters);
     }
   }
 

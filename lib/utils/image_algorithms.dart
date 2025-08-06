@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:ui';
@@ -15,7 +16,7 @@ class ImageAlgorithms {
     final gradient = ui.Gradient.linear(
       const Offset(0, 0),
       const Offset(200, 200),
-      [Colors.red, Colors.blue, Colors.green],
+      [Colors.red, Colors.blue],
     );
 
     paint.shader = gradient;
@@ -112,12 +113,18 @@ class ImageAlgorithms {
   }
 
   static Future<ui.Image> _createImageFromPixels(Uint8List pixels, int width, int height) async {
-    final ui.Codec codec = await ui.instantiateImageCodec(
-      pixels.buffer.asUint8List(),
-      targetWidth: width,
-      targetHeight: height,
+    final Completer<ui.Image> completer = Completer<ui.Image>();
+
+    ui.decodeImageFromPixels(
+      pixels,
+      width,
+      height,
+      ui.PixelFormat.rgba8888,
+      (ui.Image image) {
+        completer.complete(image);
+      },
     );
-    final ui.FrameInfo frameInfo = await codec.getNextFrame();
-    return frameInfo.image;
+
+    return completer.future;
   }
 }
