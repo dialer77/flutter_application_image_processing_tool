@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/graph.dart';
 import '../models/processing_block.dart';
 import '../models/block_type.dart';
 import '../utils/app_theme.dart';
@@ -6,24 +7,30 @@ import 'processing_block_widget.dart';
 
 class BlockEditor extends StatefulWidget {
   final List<ProcessingBlock> blocks;
+  final List<GraphEdge> edges;
   final Function(BlockType) onBlockAdded;
   final Function(int, int) onBlockReordered;
   final Function(int) onBlockDeleted;
   final Function(int, String, dynamic) onParameterChanged;
   final Function(int)? onBlockTap;
   final Function(int)? onLoadImage;
+  final void Function(String fromId, String toId)? onAddEdge;
+  final void Function(String fromId, String toId)? onRemoveEdge;
   final VoidCallback onExecute;
   final VoidCallback onClear;
 
   const BlockEditor({
     super.key,
     required this.blocks,
+    required this.edges,
     required this.onBlockAdded,
     required this.onBlockReordered,
     required this.onBlockDeleted,
     required this.onParameterChanged,
     this.onBlockTap,
     this.onLoadImage,
+    this.onAddEdge,
+    this.onRemoveEdge,
     required this.onExecute,
     required this.onClear,
   });
@@ -38,6 +45,8 @@ class _BlockEditorState extends State<BlockEditor> {
   final Map<String, Size> _blockSizes = {};
   final Map<String, GlobalKey> _blockKeys = {};
   Offset? _pendingDropPosition;
+  String? _connectingFromId;
+  Offset? _connectingCursor;
 
   @override
   void didUpdateWidget(covariant BlockEditor oldWidget) {
@@ -168,8 +177,11 @@ class _BlockEditorState extends State<BlockEditor> {
                                     child: CustomPaint(
                                       painter: _FreeConnectorPainter(
                                         blocks: widget.blocks,
+                                        edges: widget.edges,
                                         positions: Map<String, Offset>.from(_blockPositions),
                                         sizes: Map<String, Size>.from(_blockSizes),
+                                        connectingFromId: _connectingFromId,
+                                        connectingCursor: _connectingCursor,
                                       ),
                                     ),
                                   ),
@@ -207,15 +219,84 @@ class _BlockEditorState extends State<BlockEditor> {
                                           minWidth: 220,
                                           maxWidth: 280,
                                         ),
-                                        child: ProcessingBlockWidget(
-                                          block: block,
-                                          index: index,
-                                          onDelete: () => widget.onBlockDeleted(index),
-                                          onParameterChanged: (key, value) {
-                                            widget.onParameterChanged(index, key, value);
-                                          },
-                                          onBlockTap: widget.onBlockTap != null ? () => widget.onBlockTap!(index) : null,
-                                          onLoadImage: widget.onLoadImage != null ? () => widget.onLoadImage!(index) : null,
+                                        child: Stack(
+                                          children: [
+                                            ProcessingBlockWidget(
+                                              block: block,
+                                              index: index,
+                                              onDelete: () => widget.onBlockDeleted(index),
+                                              onParameterChanged: (key, value) {
+                                                widget.onParameterChanged(index, key, value);
+                                              },
+                                              onBlockTap: widget.onBlockTap != null ? () => widget.onBlockTap!(index) : null,
+                                              onLoadImage: widget.onLoadImage != null ? () => widget.onLoadImage!(index) : null,
+                                            ),
+                                            // 입력 핀 (좌)
+                                            const Positioned(
+                                              left: 2,
+                                              top: 0,
+                                              bottom: 0,
+                                              child: Center(
+                                                heightFactor: 1,
+                                                child: _PinDot(color: AppTheme.borderColor),
+                                              ),
+                                            ),
+                                            // 출력 핀 (우) - 드래그로 연결 시작
+                                            Positioned(
+                                              right: 2,
+                                              top: 0,
+                                              bottom: 0,
+                                              child: Center(
+                                                heightFactor: 1,
+                                                child: _PinDot(
+                                                  color: AppTheme.activeBorderColor,
+                                                  onDragStart: (globalPos) {
+                                                    final rb = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
+                                                    setState(() {
+                                                      _connectingFromId = block.id;
+                                                      _connectingCursor = rb?.globalToLocal(globalPos);
+                                                    });
+                                                  },
+                                                  onDragUpdate: (globalPos) {
+                                                    final rb = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
+                                                    setState(() {
+                                                      _connectingCursor = rb?.globalToLocal(globalPos);
+                                                    });
+                                                  },
+                                                  onDragEnd: () {
+                                                    if (_connectingFromId == null) return;
+                                                    final fromId = _connectingFromId!;
+                                                    final cursor = _connectingCursor;
+                                                    String? targetId;
+                                                    if (cursor != null) {
+                                                      double bestDist = 1e9;
+                                                      for (final entry in widget.blocks) {
+                                                        if (entry.id == fromId) continue;
+                                                        final pos2 = _blockPositions[entry.id];
+                                                        final sz2 = _blockSizes[entry.id];
+                                                        if (pos2 == null || sz2 == null) continue;
+                                                        // 입력 핀(좌측) 중심은 블록 좌측에서 약 6px 안쪽
+                                                        final inputCenter = Offset(pos2.dx + 6, pos2.dy + sz2.height / 2);
+                                                        final d = (inputCenter - cursor).distance;
+                                                        if (d < bestDist) {
+                                                          bestDist = d;
+                                                          targetId = entry.id;
+                                                        }
+                                                      }
+                                                      // 스냅 반경 확대
+                                                      if (bestDist < 40 && targetId != null) {
+                                                        widget.onAddEdge?.call(fromId, targetId);
+                                                      }
+                                                    }
+                                                    setState(() {
+                                                      _connectingFromId = null;
+                                                      _connectingCursor = null;
+                                                    });
+                                                  },
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ),
@@ -237,13 +318,19 @@ class _BlockEditorState extends State<BlockEditor> {
 
 class _FreeConnectorPainter extends CustomPainter {
   final List<ProcessingBlock> blocks;
+  final List<GraphEdge> edges;
   final Map<String, Offset> positions;
   final Map<String, Size> sizes;
+  final String? connectingFromId;
+  final Offset? connectingCursor;
 
   _FreeConnectorPainter({
     required this.blocks,
+    required this.edges,
     required this.positions,
     required this.sizes,
+    required this.connectingFromId,
+    required this.connectingCursor,
   });
 
   @override
@@ -253,33 +340,75 @@ class _FreeConnectorPainter extends CustomPainter {
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
-    for (int i = 0; i < blocks.length - 1; i++) {
-      final from = blocks[i];
-      final to = blocks[i + 1];
-      final fromPos = positions[from.id] ?? const Offset(0, 0);
-      final toPos = positions[to.id] ?? const Offset(0, 0);
-      final fromSize = sizes[from.id] ?? const Size(240, 120);
-      final toSize = sizes[to.id] ?? const Size(240, 120);
+    // 실제 edges 기반 연결선
+    for (final e in edges) {
+      final fromPos = positions[e.fromId];
+      final toPos = positions[e.toId];
+      final fromSize = sizes[e.fromId];
+      final toSize = sizes[e.toId];
+      if (fromPos == null || toPos == null || fromSize == null || toSize == null) continue;
 
-      final Offset start = Offset(fromPos.dx + fromSize.width, fromPos.dy + fromSize.height / 2);
-      final Offset end = Offset(toPos.dx, toPos.dy + toSize.height / 2);
-
-      // 선
+      final start = Offset(fromPos.dx + fromSize.width - 2, fromPos.dy + fromSize.height / 2);
+      final end = Offset(toPos.dx + 2, toPos.dy + toSize.height / 2);
       canvas.drawLine(start, end - const Offset(8, 0), linePaint);
-
-      // 화살표 머리
-      final Path arrow = Path();
-      final double ay = end.dy;
-      final double ax = end.dx;
-      arrow.moveTo(ax - 8, ay - 6);
-      arrow.lineTo(ax, ay);
-      arrow.lineTo(ax - 8, ay + 6);
+      final Path arrow = Path()
+        ..moveTo(end.dx - 8, end.dy - 6)
+        ..lineTo(end.dx, end.dy)
+        ..lineTo(end.dx - 8, end.dy + 6);
       canvas.drawPath(arrow, linePaint..style = PaintingStyle.fill);
+    }
+
+    // 드래그 중 임시 연결선
+    if (connectingFromId != null && connectingCursor != null) {
+      final fromPos = positions[connectingFromId!];
+      final fromSize = sizes[connectingFromId!];
+      if (fromPos != null && fromSize != null) {
+        final start = Offset(fromPos.dx + fromSize.width - 2, fromPos.dy + fromSize.height / 2);
+        canvas.drawLine(start, connectingCursor!, linePaint);
+      }
     }
   }
 
   @override
   bool shouldRepaint(covariant _FreeConnectorPainter oldDelegate) {
-    return oldDelegate.positions != positions || oldDelegate.sizes != sizes || oldDelegate.blocks != blocks;
+    return oldDelegate.positions != positions ||
+        oldDelegate.sizes != sizes ||
+        oldDelegate.blocks != blocks ||
+        oldDelegate.edges != edges ||
+        oldDelegate.connectingFromId != connectingFromId ||
+        oldDelegate.connectingCursor != connectingCursor;
+  }
+}
+
+class _PinDot extends StatelessWidget {
+  final Color color;
+  final void Function(Offset globalPosition)? onDragStart;
+  final void Function(Offset globalPosition)? onDragUpdate;
+  final VoidCallback? onDragEnd;
+
+  const _PinDot({
+    required this.color,
+    this.onDragStart,
+    this.onDragUpdate,
+    this.onDragEnd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onPanStart: onDragStart != null ? (d) => onDragStart!(d.globalPosition) : null,
+      onPanUpdate: onDragUpdate != null ? (d) => onDragUpdate!(d.globalPosition) : null,
+      onPanEnd: onDragEnd != null ? (_) => onDragEnd!() : null,
+      child: Container(
+        width: 12,
+        height: 12,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2)],
+        ),
+      ),
+    );
   }
 }

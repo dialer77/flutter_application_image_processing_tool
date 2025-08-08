@@ -5,6 +5,7 @@ import 'grayscale_block.dart';
 import 'blur_block.dart';
 import 'brightness_block.dart';
 import 'display_block.dart';
+import 'merge_block.dart';
 
 // 블록 팩토리 함수
 ProcessingBlock createBlock(BlockType type, String id, [Map<String, dynamic>? parameters]) {
@@ -19,5 +20,7 @@ ProcessingBlock createBlock(BlockType type, String id, [Map<String, dynamic>? pa
       return BrightnessBlock(id: id, parameters: parameters);
     case BlockType.display:
       return DisplayBlock(id: id, parameters: parameters);
+    case BlockType.merge:
+      return MergeBlock(id: id, parameters: parameters);
   }
 }

@@ -32,6 +32,7 @@ class BlockPalette extends StatelessWidget {
                 BlockTemplateWidget(type: BlockType.blur),
                 BlockTemplateWidget(type: BlockType.brightness),
                 BlockTemplateWidget(type: BlockType.display),
+                BlockTemplateWidget(type: BlockType.merge),
               ],
             ),
           ),

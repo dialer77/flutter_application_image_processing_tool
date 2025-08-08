@@ -10,6 +10,9 @@ class ParameterUtils {
         return {'강도': 1.0};
       case BlockType.brightness:
         return {'밝기': 1.0};
+      case BlockType.merge:
+        // 임시 병합: 평균 병합 모드
+        return {'mode': 'average'};
       default:
         return {};
     }

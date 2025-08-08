@@ -2,11 +2,14 @@ import '../models/processing_block.dart';
 import '../models/block_type.dart';
 import '../utils/parameter_utils.dart';
 import 'dart:ui' as ui;
+import '../models/graph.dart';
 
 class BlockManager {
   final List<ProcessingBlock> _blocks = [];
+  final List<GraphEdge> _edges = [];
 
   List<ProcessingBlock> get blocks => List.unmodifiable(_blocks);
+  List<GraphEdge> get edges => List.unmodifiable(_edges);
 
   void addBlock(BlockType type) {
     final block = createBlock(
@@ -19,7 +22,9 @@ class BlockManager {
 
   void removeBlock(int index) {
     if (index >= 0 && index < _blocks.length) {
-      _blocks.removeAt(index);
+      final removed = _blocks.removeAt(index);
+      // 연결선에서도 제거
+      _edges.removeWhere((e) => e.fromId == removed.id || e.toId == removed.id);
     }
   }
 
@@ -88,13 +93,12 @@ class BlockManager {
 
     // 해당 블록까지의 결과를 순차적으로 계산
     ui.Image? currentImage;
-    ui.Image? originalImage;
 
     for (int i = 0; i <= blockIndex; i++) {
       final block = _blocks[i];
       if (block.result != null) {
         currentImage = block.result!.currentImage;
-        originalImage = block.result!.originalImage;
+        // originalImage는 미리보기 계산에 사용하지 않아 제거
       }
     }
 
@@ -103,6 +107,7 @@ class BlockManager {
 
   void clearBlocks() {
     _blocks.clear();
+    _edges.clear();
   }
 
   bool hasBlockType(BlockType type) {
@@ -115,5 +120,17 @@ class BlockManager {
 
   List<ProcessingBlock> getBlocksByType(BlockType type) {
     return _blocks.where((block) => block.type == type).toList();
+  }
+
+  // 그래프 연결선 관리
+  void addEdge(String fromId, String toId) {
+    if (fromId == toId) return;
+    if (!_blocks.any((b) => b.id == fromId) || !_blocks.any((b) => b.id == toId)) return;
+    if (_edges.any((e) => e.fromId == fromId && e.toId == toId)) return;
+    _edges.add(GraphEdge(fromId: fromId, toId: toId));
+  }
+
+  void removeEdge(String fromId, String toId) {
+    _edges.removeWhere((e) => e.fromId == fromId && e.toId == toId);
   }
 }

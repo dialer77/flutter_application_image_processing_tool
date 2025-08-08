@@ -9,6 +9,7 @@ class BlockColors {
         BlockType.blur: AppTheme.blockColors['blur']!,
         BlockType.brightness: AppTheme.blockColors['brightness']!,
         BlockType.display: AppTheme.blockColors['display']!,
+        BlockType.merge: Colors.orange,
       };
 
   static Color getColor(BlockType type) {
@@ -21,6 +22,7 @@ class BlockColors {
     BlockType.blur: '블러 효과',
     BlockType.brightness: '밝기 조절',
     BlockType.display: '결과 보기',
+    BlockType.merge: '병합',
   };
 
   static String getTitle(BlockType type) {

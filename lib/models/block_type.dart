@@ -4,4 +4,5 @@ enum BlockType {
   blur,
   brightness,
   display,
+  merge,
 }

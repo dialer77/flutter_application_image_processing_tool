@@ -45,12 +45,23 @@ class _ImageProcessorScreenState extends State<ImageProcessorScreen> {
             flex: 2,
             child: BlockEditor(
               blocks: _blockManager.blocks,
+              edges: _blockManager.edges,
               onBlockAdded: _addBlock,
               onBlockReordered: _reorderBlocks,
               onBlockDeleted: _deleteBlock,
               onParameterChanged: _updateParameter,
               onBlockTap: _onBlockTap, // 블록 클릭 이벤트 추가
               onLoadImage: _onLoadImage, // 이미지 로드 이벤트 추가
+              onAddEdge: (fromId, toId) {
+                setState(() {
+                  _blockManager.addEdge(fromId, toId);
+                });
+              },
+              onRemoveEdge: (fromId, toId) {
+                setState(() {
+                  _blockManager.removeEdge(fromId, toId);
+                });
+              },
               onExecute: _executeBlocks,
               onClear: _clearBlocks,
             ),
