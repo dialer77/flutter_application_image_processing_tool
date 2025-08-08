@@ -10,9 +10,10 @@ import '../widgets/image_preview.dart';
 import '../models/block_type.dart';
 import '../models/processing_block.dart';
 import '../services/block_manager.dart';
-import '../services/image_processor.dart';
+// import '../services/image_processor.dart';
 import 'dart:math' as math;
 import 'package:flutter/rendering.dart';
+import '../utils/image_algorithms.dart';
 
 class ImageProcessorScreen extends StatefulWidget {
   const ImageProcessorScreen({super.key});
@@ -26,6 +27,7 @@ class _ImageProcessorScreenState extends State<ImageProcessorScreen> {
   ui.Image? _originalImage;
   ui.Image? _processedImage;
   ui.Image? _previewImage; // 미리보기 이미지 추가
+  bool _isPreviewMode = false; // 미리보기 모드 여부
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +61,7 @@ class _ImageProcessorScreenState extends State<ImageProcessorScreen> {
             flex: 1,
             child: ImagePreview(
               originalImage: _originalImage,
-              processedImage: _previewImage ?? _processedImage, // 미리보기 이미지 우선 표시
+              processedImage: _isPreviewMode ? _previewImage : _processedImage,
             ),
           ),
         ],
@@ -187,65 +189,18 @@ class _ImageProcessorScreenState extends State<ImageProcessorScreen> {
     }
   }
 
-  // 블록 클릭 시 미리보기 표시
-  void _onBlockTap(int index) async {
-    if (_originalImage == null) {
-      // 이미지가 없으면 샘플 이미지 생성
-      await _loadSampleImage();
-      if (_originalImage == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이미지를 로드할 수 없습니다.')),
-        );
-        return;
-      }
-    }
-
-    if (_blockManager.hasBlockResult(index)) {
-      // 이미 결과가 있으면 바로 미리보기
-      setState(() {
-        _previewImage = _blockManager.getCumulativeResultImage(index);
-      });
-    } else {
-      // 결과가 없으면 해당 블록까지 실행하여 미리보기
-      await _executeBlocksUpTo(index);
-    }
-  }
-
-  // 특정 블록까지 실행하여 미리보기
-  Future<void> _executeBlocksUpTo(int targetIndex) async {
-    if (_originalImage == null) {
-      // 이미지가 없으면 샘플 이미지 생성
-      await _loadSampleImage();
-      if (_originalImage == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이미지를 로드할 수 없습니다.')),
-        );
-        return;
-      }
-    }
-
-    try {
-      ui.Image? currentImage = _originalImage;
-      ui.Image? originalImage = _originalImage;
-
-      for (int i = 0; i <= targetIndex; i++) {
-        final block = _blockManager.blocks[i];
-        final result = await block.executeBlock(currentImage, originalImage);
-
-        // 결과 저장
-        _blockManager.updateBlockResult(i, result);
-
-        currentImage = result.currentImage;
-        originalImage = result.originalImage;
-      }
-
-      setState(() {
-        _previewImage = currentImage;
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('미리보기 실행 중 오류가 발생했습니다: $e')),
-      );
+  // 블록 클릭 시: 실행은 하지 않고, 기존 결과가 있을 때만 미리보기 업데이트
+  void _onBlockTap(int index) {
+    final result = _blockManager.getBlockResult(index);
+    if (result != null) {
+      () async {
+        final ui.Image displayImage = await ImageAlgorithms.cloneImage(result.currentImage!);
+        if (!mounted) return;
+        setState(() {
+          _previewImage = displayImage; // 복제본으로 미리보기 표시
+          _isPreviewMode = true; // 미리보기 모드 활성화
+        });
+      }();
     }
   }
 
@@ -253,6 +208,7 @@ class _ImageProcessorScreenState extends State<ImageProcessorScreen> {
   void _clearPreview() {
     setState(() {
       _previewImage = null;
+      _isPreviewMode = false;
     });
   }
 
@@ -269,21 +225,22 @@ class _ImageProcessorScreenState extends State<ImageProcessorScreen> {
         }
       }
 
-      final result = await ImageProcessor.executeBlocks(_blockManager.blocks);
-
-      setState(() {
-        _originalImage = result.originalImage;
-        _processedImage = result.processedImage;
-        _previewImage = null; // 실행 완료 시 미리보기 초기화
-      });
-
-      // 각 블록의 결과 저장
+      // ImageProcessor 사용 대신 순차 실행하며 각 블록 결과 저장
+      ui.Image? currentImage = _originalImage;
+      ui.Image? originalImage = _originalImage;
       for (int i = 0; i < _blockManager.blocks.length; i++) {
         final block = _blockManager.blocks[i];
-        if (block.result != null) {
-          _blockManager.updateBlockResult(i, block.result!);
-        }
+        final result = await block.executeBlock(currentImage, originalImage);
+        _blockManager.updateBlockResult(i, result);
+        currentImage = result.currentImage;
+        originalImage = result.originalImage ?? originalImage;
       }
+
+      setState(() {
+        _processedImage = currentImage;
+        _previewImage = null; // 실행 완료 시 미리보기 초기화
+        _isPreviewMode = false; // 실행 모드로 전환
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('이미지 처리가 완료되었습니다.')),

@@ -178,4 +178,14 @@ class ImageAlgorithms {
 
     return completer.future;
   }
+
+  // 현재 이미지를 완전 복제하여 새로운 ui.Image 인스턴스로 반환
+  static Future<ui.Image> cloneImage(ui.Image image) async {
+    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    if (byteData == null) {
+      return image;
+    }
+    final Uint8List pixels = Uint8List.fromList(byteData.buffer.asUint8List());
+    return await _createImageFromPixels(pixels, image.width, image.height);
+  }
 }
